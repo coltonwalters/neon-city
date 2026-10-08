@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RAINY NIGHT — Immersive City</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05080d;color:#eef3f8;font-family:Arial,Helvetica,sans-serif}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+.hud{position:fixed;z-index:5;inset:0;pointer-events:none}.top{position:absolute;top:20px;left:24px;right:24px;display:flex;justify-content:space-between;align-items:flex-start}
+.brand{font-weight:900;letter-spacing:4px;font-size:13px}.status{color:#8290a0;font-size:10px;letter-spacing:2px;margin-top:7px}
+.clock{font-size:30px;font-weight:800;text-shadow:0 0 20px #fff5}.weather{font-size:10px;letter-spacing:2px;color:#7e8c9c;text-align:right}
+.bottom{position:absolute;bottom:24px;left:24px;right:24px;display:flex;justify-content:space-between;align-items:end}
+.tip{background:#080d13cc;border:1px solid #ffffff16;padding:12px 15px;color:#aab5c1;font-size:11px;letter-spacing:1px}
+.controls{display:flex;gap:7px;pointer-events:auto}.controls button,.action{background:#0a1017dd;color:#fff;border:1px solid #ffffff1c;padding:10px 14px;border-radius:4px;cursor:pointer}.controls button:hover,.action:hover{border-color:#66c7ff;box-shadow:0 0 20px #66c7ff22}
+.panel{position:absolute;z-index:10;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,90vw);background:#070b10eF;border:1px solid #ffffff20;box-shadow:0 30px 100px #000;backdrop-filter:blur(15px);padding:30px;display:none;pointer-events:auto}
+.panel.show{display:block}.eyebrow{font-size:10px;letter-spacing:3px;color:#6f8192}.panel h1{font-size:42px;margin:10px 0;letter-spacing:-2px}.panel p{color:#9daab8;line-height:1.6}.row{display:flex;gap:10px;flex-wrap:wrap}.tag{padding:7px 9px;border:1px solid #25313d;color:#aeb9c5;font-size:10px;letter-spacing:1px}
+#fade{position:fixed;inset:0;background:#000;z-index:30;pointer-events:none;opacity:1;transition:opacity 1.2s}
+</style>
+</head>
+<body>
+<canvas id="city"></canvas><div id="fade"></div>
+<div class="hud">
+<div class="top"><div><div class="brand">RAINY NIGHT</div><div class="status">RICHMOND DISTRICT • 11:47 PM</div></div><div><div class="clock" id="clock">11:47</div><div class="weather">HEAVY RAIN • 12°C</div></div></div>
+<div class="bottom"><div class="tip" id="tip">A quiet city is never actually quiet.</div><div class="controls"><button onclick="toggleRain()">RAIN</button><button onclick="toggleLights()">LIGHTS</button><button onclick="openPanel('explore')">EXPLORE</button></div></div>
+</div>
+
+<div class="panel show" id="welcome"><div class="eyebrow">11:47 PM • SATURDAY</div><h1>Just walk.</h1><p>The rain has been falling for hours. Cars slide through wet streets, storefronts glow through the fog, and somewhere downtown a train is still running.</p><div class="row"><span class="tag">RAIN</span><span class="tag">TRAFFIC</span><span class="tag">FOG</span><span class="tag">CITY SOUNDS</span></div><br><button class="action" onclick="closePanels()">ENTER THE NIGHT →</button></div>
+
+<div class="panel" id="explore"><div class="eyebrow">CITY GUIDE</div><h1>Where do you go?</h1><p>Choose a destination. The city will move around you.</p><div class="row"><button class="action" onclick="travel('cafe')">☕ NIGHT CAFE</button><button class="action" onclick="travel('subway')">🚇 SUBWAY</button><button class="action" onclick="travel('rooftop')">🌃 ROOFTOP</button><button class="action" onclick="travel('store')">🏪 CORNER STORE</button></div><p id="travelText"></p></div>
+
+<script>
+const c=document.getElementById('city'),x=c.getContext('2d');let W,H,dpr,mouseX=0,mouseY=0,rain=true,lights=true,mode='street',t=0;
+function resize(){dpr=devicePixelRatio||1;W=innerWidth*dpr;H=innerHeight*dpr;c.width=W;c.height=H;c.style.width=innerWidth+'px';c.style.height=innerHeight+'px'}resize();addEventListener('resize',resize);
+addEventListener('mousemove',e=>{mouseX=(e.clientX/innerWidth-.5)*2;mouseY=(e.clientY/innerHeight-.5)*2});
+function line(a,b,c,d,s,alpha=1){x.strokeStyle=`rgba(${s},${alpha})`;x.beginPath();x.moveTo(a,b);x.lineTo(c,d);x.stroke()}
+function building(px,w,h,col){let horizon=H*.56;let bx=px*W, bw=w*W,bh=h*H; x.fillStyle=col;x.fillRect(bx,horizon-bh,bw,bh);
+for(let yy=horizon-bh+20;yy<horizon-8;yy+=27){for(let xx=bx+12;xx<bx+bw-8;xx+=24){if(Math.random()>.22){x.fillStyle=lights?'rgba(216,231,245,.28)':'rgba(100,110,120,.12)';x.fillRect(xx,yy,8,10)}}}
+}
+function draw(){
+ t+=.016;x.clearRect(0,0,W,H);
+ let sky=x.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#02050a');sky.addColorStop(.58,'#09131d');sky.addColorStop(1,'#111820');x.fillStyle=sky;x.fillRect(0,0,W,H);
+ let horizon=H*.56;
+ building(.01,.14,.31,'#111a24');building(.15,.11,.42,'#0d151e');building(.27,.17,.27,'#151e28');building(.44,.12,.49,'#0d1721');building(.56,.17,.34,'#121c27');building(.75,.11,.45,'#0d151f');building(.87,.15,.29,'#151e28');
+ // distant tower
+ x.fillStyle='#0b141d';x.fillRect(W*.64,horizon-H*.63,W*.08,H*.63);x.fillStyle='#66c7ff22';x.fillRect(W*.675,horizon-H*.63,W*.008,H*.63);
+ // road
+ x.fillStyle='#080b0e';x.beginPath();x.moveTo(W*.39,horizon);x.lineTo(W*.61,horizon);x.lineTo(W*.94,H);x.lineTo(W*.06,H);x.closePath();x.fill();
+ // wet road reflections
+ for(let i=0;i<24;i++){let yy=horizon+(i/24)*(H-horizon);let width=(yy-horizon)*.8;line(W*.5-width,yy,W*.5+width,yy,'120,160,190',.09)}
+ for(let i=0;i<9;i++){let xx=W*(.25+i*.07);line(xx,horizon, W*(.08+i*.105),H,'160,190,215',.05)}
+ // street lamps
+ [[.18,.44],[.82,.43],[.35,.53],[.65,.51]].forEach(([p,hy])=>{let lx=p*W,top=hy*H;x.strokeStyle='#26333e';x.lineWidth=4;x.beginPath();x.moveTo(lx,H*.82);x.lineTo(lx,top);x.lineTo(lx+(p<.5?35:-35),top);x.stroke();x.fillStyle='#f4dfad99';x.beginPath();x.arc(lx+(p<.5?35:-35),top,8,0,7);x.fill()});
+ // cars
+ for(let i=0;i<7;i++){let yy=horizon+((i*83+t*35)%260),scale=.15+(yy-horizon)/500;let cx=W*(.5+Math.sin(i*9)*.06);x.fillStyle=i%2?'#27323d':'#17232e';x.fillRect(cx-35*scale,yy,70*scale,28*scale);x.fillStyle='#d84646aa';x.fillRect(cx-27*scale,yy+5,8*scale,5*scale);x.fillRect(cx+19*scale,yy+5,8*scale,5*scale)}
+ // cafe
+ x.fillStyle='#101821';x.fillRect(W*.76,H*.47,W*.12,H*.14);x.fillStyle='#e7bd68';x.fillRect(W*.78,H*.5,W*.08,H*.07);x.fillStyle='#121';x.font='bold 12px Arial';x.fillText('OPEN',W*.795,H*.535);
+ // rain
+ if(rain){x.lineWidth=1;for(let i=0;i<850;i++){let rx=(i*97+t*180)%W,ry=(i*53+t*760)%H;line(rx,ry,rx-4,ry+18,'145,190,220',.18)}}
+ // fog
+ let fog=x.createLinearGradient(0,horizon-50,0,H);fog.addColorStop(0,'rgba(120,145,165,.02)');fog.addColorStop(1,'rgba(120,145,165,.12)');x.fillStyle=fog;x.fillRect(0,horizon-50,W,H);
+ requestAnimationFrame(draw)
+}draw();
+setTimeout(()=>document.getElementById('fade').style.opacity=0,300);
+function closePanels(){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));document.getElementById('tip').textContent='Move your mouse. Watch the reflections. Listen to the rain.'}
+function openPanel(id){document.getElementById(id).classList.add('show')}
+function toggleRain(){rain=!rain;document.querySelector('.weather').textContent=rain?'HEAVY RAIN • 12°C':'RAIN PAUSED • 12°C';document.getElementById('tip').textContent=rain?'The rain is back.':'For a moment, the city is almost silent.'}
+function toggleLights(){lights=!lights;document.getElementById('tip').textContent=lights?'Windows are waking up.':'The city feels different in the dark.'}
+function travel(where){let texts={cafe:'The cafe is still open. Warm light spills onto the sidewalk. Someone is sitting alone by the window.',subway:'A train arrives beneath the street. You hear the brakes before you see the lights.',rooftop:'Up here, the rain is softer. The whole city looks like a field of reflections.',store:'The corner store hums under fluorescent lights. The cashier recognizes someone who just left.'};document.getElementById('travelText').textContent=texts[where];document.getElementById('tip').textContent=texts[where]}
+setInterval(()=>{let now=new Date();document.getElementById('clock').textContent=now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false})},1000);
+</script>
+</body>
+</html>
